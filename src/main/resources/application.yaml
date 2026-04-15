@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: taxi
+  profiles:
+    active: dev
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dev}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: 6379
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_DEFAULT_USER:rabbit}
+    password: ${RABBITMQ_DEFAULT_PASS:rabbit}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3s
+          max-attempts: 3
+
+  # ============================================
+  # SPRING AUTHORIZATION SERVER CONFIGURATION
+  # ============================================
+  security:
+    jwt:
+      issuer-uri: http://localhost:8080
+    oauth2:
+      default-redirect-uri: "https://localhost:3000/oauth/code"
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+
+springdoc:
+  swagger-ui:
+    path: /swagger/swagger-ui.html
+  api-docs:
+    path: /swagger/v3/api-docs
