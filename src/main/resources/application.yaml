@@ -2,7 +2,7 @@ spring:
   application:
     name: taxi
   profiles:
-    active: dev
+    active: qa
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/dev}

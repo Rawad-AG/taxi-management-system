@@ -2,6 +2,7 @@ package dev.rawad.taxi.customer.entities;
 
 import java.time.Instant;
 
+import org.locationtech.jts.geom.Point;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -47,6 +48,7 @@ public class CustomerEntity {
     private UserEntity user;
 
     @Builder.Default
+    @Column(nullable = false)
     private String avatar = "avatar.png";
 
     @Column(name = "first_name", nullable = false)
@@ -54,6 +56,9 @@ public class CustomerEntity {
 
     @Column(name = "last_name", nullable = true)
     private String lastName;
+
+    @Column(columnDefinition = "geography(Point, 4326)")
+    private Point location;
 
     private Instant deletedAt;
 

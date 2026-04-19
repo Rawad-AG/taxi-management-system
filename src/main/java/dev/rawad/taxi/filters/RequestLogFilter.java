@@ -17,16 +17,20 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestLogFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("Authorities: " + auth.getAuthorities());
-        System.out.println("Principal Type: " + auth.getPrincipal().getClass().getName());
         log.info("{} {}", request.getMethod(), request.getRequestURI());
+        if (auth == null) {
+            System.out.println("Authorities: Guest");
+        } else {
+            System.out.println("Authorities: " + auth.getAuthorities());
+            System.out.println("Principal Type: " + auth.getPrincipal().getClass().getName());
+        }
         filterChain.doFilter(request, response);
     }
 }

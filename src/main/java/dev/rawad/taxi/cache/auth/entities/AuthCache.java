@@ -1,4 +1,4 @@
-package dev.rawad.taxi.auth.entities.redis;
+package dev.rawad.taxi.cache.auth.entities;
 
 import java.time.Instant;
 
@@ -7,15 +7,15 @@ import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 import org.springframework.data.redis.core.index.Indexed;
 
-import dev.rawad.taxi.auth.enums.AuthRedisType;
 import dev.rawad.taxi.auth.enums.RegisteredWith;
+import dev.rawad.taxi.cache.auth.enums.AuthCacheType;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-@RedisHash(value = "AuthRedis")
-public class AuthRedis {
+@RedisHash(value = "AuthCache")
+public class AuthCache {
     @Id
     private Long id;
 
@@ -23,7 +23,7 @@ public class AuthRedis {
     private Long userId;
 
     @Indexed
-    private AuthRedisType type;
+    private AuthCacheType type;
 
     private String code;
     private RegisteredWith via;
@@ -33,6 +33,9 @@ public class AuthRedis {
 
     @Builder.Default
     private Instant issuedAt = Instant.now();
+
+    @Builder.Default
+    private Boolean revoked = false;
 
     @TimeToLive
     @Builder.Default

@@ -38,7 +38,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Register User", description = "Signup users via (email or phone), returns the user id in case of correctly signed up", deprecated = true)
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully registered"),
         })
         @PostMapping("/register")
@@ -50,7 +50,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Validate OTP codes", description = "after register the user, and OTP code will be sent, after validating it the user becomes enabled and able to login")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully validated, and OTP code is sent"),
         })
         @GetMapping("/otp/validate")
@@ -62,7 +62,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Login User", description = "login with username(email or phone) and password, a refresh token is sent back")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully Logged in", headers = {
                                         @Header(name = "authorization", description = "refresh token for exchange with access tokens")
                         }),
@@ -75,7 +75,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Refresh Token", description = "exchange the refresh token with new access tokens")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully Validated", headers = {
                                         @Header(name = "token", description = "access token used to access protected APIs")
                         }),
@@ -88,7 +88,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Forget Password", description = "for forget password cases, hit this url with the username provided to launch forget password flow")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "a code is sent to the user main registration way (email or phone)", content = @Content(mediaType = "application/json", schema = @Schema(name = "userId", description = "the id of the user, this id is used for validating the code in the next step")))
         })
         @GetMapping("/password/forget")
@@ -100,7 +100,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Reset password", description = "after forgetting the password use this API to validate the code and receive a reset password token")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully Validated", headers = @Header(name = "token", description = "password reset token used to change the password")),
         })
         @PostMapping("/password/reset")
@@ -111,7 +111,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Change password", description = "to change the password use this API to receive a reset password token")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully Validated", headers = @Header(name = "token", description = "password reset token used to change the password")),
         })
         @PostMapping("/password/change")
@@ -123,7 +123,7 @@ public class AuthController {
 
         // ================================
         @Operation(summary = "Update password", description = "the last step of the password changing/forgetting flow")
-        @ApiResponses(value = {
+        @ApiResponses({
                         @ApiResponse(responseCode = "200", description = "Successfully Validated (NOTE: the user is logged out from all his sessions)"),
         })
         @PostMapping("/password/update")

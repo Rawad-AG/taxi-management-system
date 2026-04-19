@@ -43,7 +43,7 @@ public class DriverEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.MERGE)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private UserEntity user;
 
@@ -58,6 +58,9 @@ public class DriverEntity {
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "car_id", nullable = false, unique = true)
     private CarEntity car;
+
+    @Builder.Default
+    private Boolean enabled = false;
 
     private Instant deletedAt;
 

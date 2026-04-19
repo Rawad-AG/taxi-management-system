@@ -2,10 +2,13 @@ package dev.rawad.taxi.customer.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.rawad.taxi.customer.dto.CustomerUpdateProfileRequest;
 import dev.rawad.taxi.customer.dto.RegisterCustomerRequest;
 import dev.rawad.taxi.customer.services.CustomerService;
 import dev.rawad.taxi.shared.responder.ApiResponseTemplate;
@@ -26,12 +29,22 @@ public class CustomerController {
     private final CustomerService service;
 
     @Operation(summary = "Register Customer", description = "Signup customers via (email or phone), returns the user id in case of correctly signed up")
-    @ApiResponses(value = {
+    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Successfully registered"),
     })
     @PostMapping("/register")
     public ResponseEntity<ApiResponseTemplate> register(@Valid @RequestBody RegisterCustomerRequest dto) {
         return responder.addToData("userId", service.register(dto)).created();
+    }
+
+    @Operation(summary = "Update Profile", description = "update customer profile data like (avatar, first/last name), sensitive data are not allowed to be updated here (e.g. passwords)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully registered"),
+    })
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<ApiResponseTemplate> updateProfile(@RequestParam Long id,
+            @Valid @RequestBody CustomerUpdateProfileRequest dto) {
+        return responder.data(service.updateProfile(id, dto)).created();
     }
 
 }

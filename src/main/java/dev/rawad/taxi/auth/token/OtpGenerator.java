@@ -5,16 +5,16 @@ import java.security.SecureRandom;
 import org.springframework.stereotype.Service;
 
 import dev.rawad.taxi.auth.entities.UserEntity;
-import dev.rawad.taxi.auth.entities.redis.AuthRedis;
-import dev.rawad.taxi.auth.enums.AuthRedisType;
 import dev.rawad.taxi.auth.enums.RegisteredWith;
-import dev.rawad.taxi.auth.repositories.redis.AuthRedisRepository;
+import dev.rawad.taxi.cache.auth.entities.AuthCache;
+import dev.rawad.taxi.cache.auth.enums.AuthCacheType;
+import dev.rawad.taxi.cache.auth.repositories.AuthCacheRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class OtpGenerator {
-    private final AuthRedisRepository authRedisRepository;
+    private final AuthCacheRepository authRedisRepository;
 
     private final String CHAR_SET = "0123456789ABCDEFGHIJKLMNOPQRSTUVSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private final SecureRandom random = new SecureRandom();
@@ -33,11 +33,11 @@ public class OtpGenerator {
     }
 
     public String generateOTP(UserEntity user, RegisteredWith via) {
-        var otp = AuthRedis.builder()
+        var otp = AuthCache.builder()
                 .userId(user.getId())
                 .code(generateOtp())
                 .via(via)
-                .type(AuthRedisType.OTP)
+                .type(AuthCacheType.OTP)
                 .build();
 
         authRedisRepository.deleteById(user.getId());
@@ -47,10 +47,10 @@ public class OtpGenerator {
     }
 
     public String generateForgetPasswordCode(UserEntity user) {
-        var otp = AuthRedis.builder()
+        var otp = AuthCache.builder()
                 .userId(user.getId())
                 .code(generateOtp())
-                .type(AuthRedisType.FORGET_PASSWORD)
+                .type(AuthCacheType.FORGET_PASSWORD)
                 .build();
 
         authRedisRepository.deleteById(user.getId());

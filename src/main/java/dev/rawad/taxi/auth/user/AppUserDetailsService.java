@@ -1,10 +1,10 @@
 package dev.rawad.taxi.auth.user;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,13 +19,14 @@ import dev.rawad.taxi.auth.dto.RegisterRequest;
 import dev.rawad.taxi.auth.dto.UpdatePasswordRequest;
 import dev.rawad.taxi.auth.dto.UserMapper;
 import dev.rawad.taxi.auth.entities.UserEntity;
-import dev.rawad.taxi.auth.entities.redis.AuthRedis;
-import dev.rawad.taxi.auth.enums.AuthRedisType;
 import dev.rawad.taxi.auth.enums.RegisteredWith;
 import dev.rawad.taxi.auth.repositories.UserRepository;
-import dev.rawad.taxi.auth.repositories.redis.AuthRedisRepository;
 import dev.rawad.taxi.auth.token.OtpGenerator;
 import dev.rawad.taxi.auth.token.TokenService;
+import dev.rawad.taxi.cache.auth.entities.AuthCache;
+import dev.rawad.taxi.cache.auth.enums.AuthCacheType;
+import dev.rawad.taxi.cache.auth.repositories.AuthCacheRepository;
+import dev.rawad.taxi.events.auth.UserRegisteredEvent;
 import dev.rawad.taxi.notification.EmailNotifier;
 import dev.rawad.taxi.notification.SMSNotifier;
 import dev.rawad.taxi.shared.exception.http.BadRequestException;
@@ -45,10 +46,11 @@ public class AppUserDetailsService implements UserDetailsService {
     private final EmailNotifier emailNotifier;
     private final SMSNotifier smsNotifier;
     private final TokenService tokenService;
-    private final AuthRedisRepository authRedisRepository;
+    private final AuthCacheRepository authRedisRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    @Qualifier("defaultDecoder")
     @Autowired
+    @Qualifier("defaultDecoder")
     private JwtDecoder jwtDecoder;
 
     @Override
@@ -148,7 +150,7 @@ public class AppUserDetailsService implements UserDetailsService {
         if (user.isEnabled())
             throw new BadRequestException("error.auth.register.user.enabled", user.getId());
 
-        var otp = authRedisRepository.findByUserIdAndType(user.getId(), AuthRedisType.OTP).orElseThrow();
+        var otp = authRedisRepository.findByUserIdAndType(user.getId(), AuthCacheType.OTP).orElseThrow();
 
         if (!otp.getCode().equals(code)) {
             if (otp.getTries() > 2) {
@@ -165,29 +167,31 @@ public class AppUserDetailsService implements UserDetailsService {
 
         if (otp.getVia() == RegisteredWith.PHONE)
             user.setEnabledViaPhone(true);
+
+        eventPublisher.publishEvent(new UserRegisteredEvent(user));
     }
 
     public String login(LoginRequest dto) {
         var user = loadUserByUsername(dto.username());
 
         authRedisRepository.findByUserIdAndType(user.getUser().getId(),
-                AuthRedisType.LOGIN_TRIES)
+                AuthCacheType.LOGIN_TRIES)
                 .ifPresent(l -> {
                     if (l.getTries() > 2)
                         throw new UnauthorizedException("error.auth.login.to-many-tries");
                 });
 
         if (!encoder.matches(dto.password(), user.getPassword())) {
-            authRedisRepository.findByUserIdAndType(user.getUser().getId(), AuthRedisType.LOGIN_TRIES)
+            authRedisRepository.findByUserIdAndType(user.getUser().getId(), AuthCacheType.LOGIN_TRIES)
                     .ifPresentOrElse(
                             l -> {
                                 l.setTries(l.getTries() + 1);
                                 authRedisRepository.save(l);
                             },
                             () -> {
-                                authRedisRepository.save(AuthRedis.builder()
+                                authRedisRepository.save(AuthCache.builder()
                                         .userId(user.getUser().getId())
-                                        .type(AuthRedisType.LOGIN_TRIES)
+                                        .type(AuthCacheType.LOGIN_TRIES)
                                         .tries(1)
                                         .build());
                             });
@@ -204,9 +208,9 @@ public class AppUserDetailsService implements UserDetailsService {
 
         var user = loadUserByUsername(jwt.getSubject());
         Long userId = user.getUser().getId();
-        var cache = authRedisRepository.findByUserIdAndType(userId, AuthRedisType.REFRESH_TOKEN).orElseThrow();
+        var cache = authRedisRepository.findByUserIdAndType(userId, AuthCacheType.REFRESH_TOKEN).orElseThrow();
 
-        if (!cache.getIssuedAt().truncatedTo(ChronoUnit.SECONDS).equals(jwt.getIssuedAt()))
+        if (cache.getRevoked())
             throw new UnauthorizedException("error.auth.login.token.invalid", userId);
 
         return tokenService.generateAccessToken(user);
@@ -227,7 +231,7 @@ public class AppUserDetailsService implements UserDetailsService {
     public String resetPassword(Long userId, String code) {
         var user = userRepository.findById(userId).orElseThrow();
 
-        var ctx = authRedisRepository.findByUserIdAndType(userId, AuthRedisType.FORGET_PASSWORD).orElseThrow();
+        var ctx = authRedisRepository.findByUserIdAndType(userId, AuthCacheType.FORGET_PASSWORD).orElseThrow();
 
         if (!ctx.getCode().equals(code)) {
             if (ctx.getTries() > 2) {

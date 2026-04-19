@@ -10,9 +10,6 @@ import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -38,7 +35,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.nimbusds.jose.jwk.JWKSet;
@@ -56,22 +52,10 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfiguration {
 
         @Bean
-        @Profile("dev")
-        @Order(Ordered.HIGHEST_PRECEDENCE)
-        public SecurityFilterChain devSecurityFilterChain(HttpSecurity http) throws Exception {
-                return http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                                .build();
-        }
-
-        @Bean
-        @Profile("!dev")
         public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationSuccessHandler handler)
                         throws Exception {
                 return http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .cors(Customizer.withDefaults())
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -94,12 +78,13 @@ public class SecurityConfiguration {
         }
 
         @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
+        public UrlBasedCorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
                 configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("*"));
-                configuration.setAllowCredentials(true);
+                configuration.setAllowCredentials(false);
+                configuration.addExposedHeader("*");
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;

@@ -10,10 +10,10 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
-import dev.rawad.taxi.auth.entities.redis.AuthRedis;
-import dev.rawad.taxi.auth.enums.AuthRedisType;
-import dev.rawad.taxi.auth.repositories.redis.AuthRedisRepository;
 import dev.rawad.taxi.auth.user.AppUserDetails;
+import dev.rawad.taxi.cache.auth.entities.AuthCache;
+import dev.rawad.taxi.cache.auth.enums.AuthCacheType;
+import dev.rawad.taxi.cache.auth.repositories.AuthCacheRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class TokenService {
 
     private final JwtEncoder jwtEncoder;
-    private final AuthRedisRepository authRedisRepository;
+    private final AuthCacheRepository authRedisRepository;
 
     @Value("${spring.security.jwt.issuer-uri:http://localhost:8080}")
     private String issuer;
@@ -41,9 +41,10 @@ public class TokenService {
                 .build();
 
         authRedisRepository.deleteById(userId);
-        authRedisRepository.save(AuthRedis.builder()
+        authRedisRepository.save(AuthCache.builder()
                 .userId(userId)
-                .type(AuthRedisType.REFRESH_TOKEN)
+                .type(AuthCacheType.REFRESH_TOKEN)
+                .issuedAt(now)
                 .build());
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
