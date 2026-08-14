@@ -80,7 +80,7 @@ export const registerCustomer = asyncHandler(async (req, res) => {
   const { firstName, lastName, phone, password } = req.body;
 
   const existing = await User.findOne({ phone });
-  if (existing) throw ApiError.conflict('This phone number is already registered');
+  if (existing) throw new ApiError(409, 'PHONE_ALREADY_REGISTERED', 'This phone number is already registered');
 
   const user = await User.create({
     role: 'customer',
@@ -91,15 +91,21 @@ export const registerCustomer = asyncHandler(async (req, res) => {
     status: 'active',
   });
 
-  const accessToken = await issueTokens(res, String(user._id));
-  res.status(201).json({ user: toUserResponse(user), accessToken });
+  const { channel, code } = await createOtpChallenge(user);
+  res.status(201).json({
+    requiresOtp: true,
+    otpChannel: channel,
+    phone: user.phone,
+    expiresIn: OTP_TTL_MS / 1000,
+    ...(env.isProd ? {} : { devOtp: code }),
+  });
 });
 
 export const registerDriver = asyncHandler(async (req, res) => {
   const { fullName, fatherName, phone, password, nationalId, licenseNumber, licenseExpiry, workingCity, workingAreas, car } = req.body;
 
   const existing = await User.findOne({ phone });
-  if (existing) throw ApiError.conflict('This phone number is already registered');
+  if (existing) throw new ApiError(409, 'PHONE_ALREADY_REGISTERED', 'This phone number is already registered');
 
   const user = await User.create({
     role: 'driver',
@@ -129,7 +135,7 @@ export const login = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ phone }).select('+password');
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw ApiError.unauthorized('Invalid phone or password');
+    throw new ApiError(401, 'INVALID_CREDENTIALS', 'Invalid phone or password');
   }
   if (user.status === 'suspended') {
     throw ApiError.forbidden('Your account is suspended. Contact support.');
@@ -158,7 +164,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   const { phone, code } = req.body;
 
   const user = await User.findOne({ phone }).select('+otpCodeHash +otpExpires +otpAttempts');
-  if (!user) throw ApiError.unauthorized('Invalid phone or code');
+  if (!user) throw new ApiError(401, 'INVALID_OTP', 'Invalid phone or code');
 
   if (!user.otpCodeHash || !user.otpExpires) {
     throw ApiError.badRequest('No login code was requested for this phone');
