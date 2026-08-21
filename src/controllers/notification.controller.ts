@@ -64,3 +64,13 @@ export const registerDeviceToken = asyncHandler(async (req, res) => {
   const user = await User.findById(id).select('deviceTokens');
   res.json({ registered: true, count: user?.deviceTokens?.length ?? 0 });
 });
+
+export const removeDeviceToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string') {
+    res.status(400).json({ error: 'Invalid push token' });
+    return;
+  }
+  await User.updateOne({ _id: userId(req) }, { $pull: { deviceTokens: token } });
+  res.json({ ok: true });
+});

@@ -33,7 +33,7 @@ class MessageService {
     this.send({
       channel,
       to,
-      text: `Your TaxiGo login code is: ${code}. It expires in 5 minutes. Never share it with anyone.`,
+      text: `Your DRMTaxi login code is: ${code}. It expires in 5 minutes. Never share it with anyone.`,
     });
   }
 

@@ -1,0 +1,130 @@
+@startuml
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 20
+skinparam classFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 18
+skinparam packageTitleFontSize 20
+skinparam noteFontSize 18
+skinparam legendFontSize 16
+skinparam titleFontSize 30
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #94A3B8
+}
+skinparam package {
+  BackgroundColor #F8FAFC
+  BorderColor #CBD5E1
+}
+
+title DRMTaxi — Backend · Application & HTTP layer\n(core services & socket layer live in class-diagram-domain.svg)
+
+package "Entry" {
+  class index <<entry>> {
+    main()
+    connectDb → ensureSystemConfig
+    setupSocket → listen(env.port)
+  }
+
+  class app <<express>> {
+    helmet / cors / json / cookieParser
+    mounts /api/auth · lookups · driver · rides
+    admin · notifications · sos · payments
+    notFoundHandler → errorHandler
+  }
+
+  class env <<config>>
+}
+
+package "REST API (routes + controllers)" {
+  class AuthAPI <<api>> {
+    register · login · verifyOtp · refresh · logout
+    forgot/reset password · me
+  }
+
+  class RideAPI <<api>> {
+    estimate · create · cancel · history
+    get · getLocation · rate
+  }
+
+  class DriverAPI <<api>> {
+    toggle/get presence · stats
+    current ride · ride actions
+  }
+
+  class AdminAPI <<api>> {
+    users · rides · driver decisions
+    reports (financial/performance) · config
+    broadcast · debts · bucket adjust
+  }
+
+  class PaymentsAPI <<api>> {
+    status · debts · payDebt
+    bucket deposit · history
+  }
+
+  class NotificationsAPI <<api>> {
+    list · unread · read · readAll
+    device-token register/remove
+  }
+
+  class SosAPI <<api>> {
+    create · mine · list · resolve
+  }
+}
+
+package "Middleware & Utils" {
+  class authMiddleware <<middleware>> {
+    authenticate : JWT → req.user
+    requireRole(...roles)
+  }
+
+  class validateMiddleware <<middleware>> {
+    validate(schema : ZodTypeAny)
+  }
+
+  class errorMiddleware <<middleware>> {
+    errorHandler(err, res) : ApiError mapping
+    notFoundHandler()
+  }
+
+  class ApiError <<util>> {
+    + statusCode : int
+    + code : string
+  }
+
+  class jwt <<util>> {
+    sign/verify access + refresh tokens
+  }
+
+  class geo <<util>> {
+    haversineKm() · round2()
+  }
+}
+
+note bottom of app
+  API classes delegate to the core services
+  (fareService, matchingService, rideFlowService,
+  paymentService, notificationService, pushService,
+  configService, MessageService)
+  → class-diagram-domain.svg
+end note
+
+index --> app : http server
+index --> env
+
+app --> AuthAPI
+app --> RideAPI
+app --> DriverAPI
+app --> AdminAPI
+app --> PaymentsAPI
+app --> NotificationsAPI
+app --> SosAPI
+app --> errorMiddleware
+
+AuthAPI --> authMiddleware
+authMiddleware --> jwt
+
+@enduml

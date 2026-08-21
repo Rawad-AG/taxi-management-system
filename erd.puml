@@ -1,0 +1,205 @@
+@startuml
+!theme plain
+hide circle
+skinparam linetype ortho
+skinparam entityBackgroundColor #FFFFFF
+skinparam entityBorderColor #94A3B8
+skinparam entityBackgroundColor<<auth>> #EFF6FF
+skinparam entityBorderColor<<auth>> #2563EB
+skinparam entityBackgroundColor<<ride>> #ECFDF5
+skinparam entityBorderColor<<ride>> #0F766E
+skinparam entityBackgroundColor<<pay>> #FFFBEB
+skinparam entityBorderColor<<pay>> #D97706
+skinparam entityBackgroundColor<<ops>> #F5F3FF
+skinparam entityBorderColor<<ops>> #7C3AED
+skinparam entityBackgroundColor<<ref>> #F8FAFC
+skinparam entityBorderColor<<ref>> #64748B
+
+title DRMTaxi — Backend ERD (MongoDB / Mongoose)\nGrouped by domain · <<embedded>> subdocuments are stored inside their parent
+
+together {
+  entity "User" as user <<auth>> {
+    * _id : ObjectId
+    --
+    * role : enum(customer|driver|admin)
+    firstName / lastName
+    * phone : String <<unique>>
+    * password : String (hashed)
+    avatar / bucketBalance / deviceTokens[]
+    status : enum(active|pending|suspended)
+    passwordResetCode / passwordResetExpires
+    otpCodeHash / otpExpires / otpAttempts
+    createdAt / updatedAt
+    --
+    <<embedded>> driverProfile : { fullName, fatherName, nationalId, licenseNumber, licenseExpiry, workingCity→City, workingAreas→Area[], car }
+    <<embedded>> car : { make→CarMake, model→CarModel, year, color, plateNumber, seats, category }
+  }
+
+  entity "RefreshToken" as rt <<auth>> {
+    * _id : ObjectId
+    --
+    * user : ObjectId → User
+    * tokenHash : String <<unique>>
+    * expiresAt : Date (TTL index)
+    revokedAt / userAgent / ip
+  }
+}
+
+entity "Ride" as ride <<ride>> {
+  * _id : ObjectId
+  --
+  * customer : ObjectId → User
+  driver : ObjectId → User
+  status : enum(requested|accepted|arrived|in_progress|completed|cancelled)
+  type : enum(ride|delivery|send_item)
+  category : enum(economy|comfort|luxury|van)
+  * city : ObjectId → City
+  pickup : <<embedded>> {label, area→Area, lat, lng}
+  dropoff : <<embedded>> {label, area→Area, lat, lng}
+  fare : <<embedded>> {base, perKm, distanceKm, roadDistanceKm, total}
+  timeline : <<embedded>> {requestedAt…completedAt}
+  cancellation : <<embedded>> {reason, cancelledBy, at}
+  ratings : {customerRating 1-5, driverRating 1-5, comments}
+  payment : {method: cash|bucket|pay_later, collected}
+  live : <<embedded>> {driverLoc, customerLoc, updatedAt}
+  createdAt / updatedAt
+}
+
+together {
+  entity "BucketTransaction" as bt <<pay>> {
+    * _id : ObjectId
+    --
+    * user : ObjectId → User
+    * type : enum(deposit|ride_payment|debt_payment|adjustment)
+    * amount : Number (negative = debit)
+    ride : ObjectId → Ride
+    debt : ObjectId → PayLaterDebt
+    note / balanceAfter
+    createdAt / updatedAt
+  }
+
+  entity "PayLaterDebt" as debt <<pay>> {
+    * _id : ObjectId
+    --
+    * customer : ObjectId → User
+    * ride : ObjectId → Ride <<unique>>
+    * amount : Number
+    * dueDate : Date
+    status : enum(outstanding|paid|overdue|waived)
+    paidAt / paidFromBucket
+    settledBy : ObjectId → User
+    settledNote
+    createdAt / updatedAt
+  }
+}
+
+together {
+  entity "Notification" as notif <<ops>> {
+    * _id : ObjectId
+    --
+    * user : ObjectId → User
+    type : enum(ride|sos|payment|payLater|account|admin|system)
+    * title / body / data(Mixed) / read
+    createdAt / updatedAt
+  }
+
+  entity "SOSIncident" as sos <<ops>> {
+    * _id : ObjectId
+    --
+    * user : ObjectId → User
+    * role : enum(customer|driver|admin)
+    ride : ObjectId → Ride
+    location : <<embedded>> {lat, lng, accuracy, ts}
+    * reason : enum(safety|accident|medical|harassment|other)
+    note / status(open|resolved)
+    resolvedBy : ObjectId → User
+    resolvedNote / resolvedAt
+    createdAt / updatedAt
+  }
+
+  entity "SystemConfig" as sysconfig <<ops>> {
+    * _id : ObjectId
+    --
+    key : String <<unique, 'default'>>
+    fare : {roadFactor, roundTo, categories: economy/comfort/luxury/van → {base, perKm}}
+    matching : {requestTtlMs, maxTargets}
+    tracking : {pingIntervalMs, staleAfterMs}
+    sos : {emergencyPhone}
+    notifications : {pushEnabled}
+    payLater : {minCompletedRides, maxOutstandingBalance, maxOutstandingRides, dueDays, blockRidesWhenOverdue}
+    business : {commissionRate, currency, supportPhone}
+    updatedBy : ObjectId → User
+    createdAt / updatedAt
+  }
+
+  entity "DriverPresence" as presence <<ops>> {
+    * _id : ObjectId
+    --
+    * driver : ObjectId → User <<unique>>
+    online : Boolean
+    city : ObjectId → City
+    areas : ObjectId[] → Area
+    lastSeenAt
+    createdAt / updatedAt
+  }
+}
+
+together {
+  entity "City" as city <<ref>> {
+    * _id : ObjectId
+    --
+    * name / slug <<unique>>
+    lat / lng / sortOrder
+  }
+
+  entity "Area" as area <<ref>> {
+    * _id : ObjectId
+    --
+    * city : ObjectId → City
+    * name / slug / sortOrder
+  }
+
+  entity "CarMake" as make <<ref>> {
+    * _id : ObjectId
+    --
+    * name <<unique>> / sortOrder
+  }
+
+  entity "CarModel" as model <<ref>> {
+    * _id : ObjectId
+    --
+    * make : ObjectId → CarMake
+    * name / category / seats / sortOrder
+  }
+}
+
+' ===== Relationships =====
+
+user ||--o{ ride : "customer"
+user ||--o{ ride : "driver"
+ride ||--o| debt : "pay_later (unique)"
+ride o-- bt : "linked txn"
+ride o-- sos : "linked incident"
+ride o-- city : "ride city"
+user ||--o{ bt : "bucket ledger"
+user ||--o{ debt : "customer owes"
+debt o-- user : "settledBy"
+user ||--o{ rt : "sessions"
+user ||--o{ notif : "in-app"
+user ||--o{ sos : "reports"
+user ||--o| presence : "1:1"
+sysconfig o-- user : "updatedBy"
+presence o-- city : "city"
+city ||--o{ area
+make ||--o{ model
+
+legend
+  | Color | Domain |
+  | <<auth>> | identity, sessions, OTP |
+  | <<ride>> | trip lifecycle, fare, tracking |
+  | <<pay>> | wallet, pay-later |
+  | <<ops>> | notifications, SOS, config, presence |
+  | <<ref>> | lookups (city / car catalogs) |
+endlegend
+
+@enduml

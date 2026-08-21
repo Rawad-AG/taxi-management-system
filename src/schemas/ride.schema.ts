@@ -8,6 +8,7 @@ export const pointSchema = z.object({
 });
 
 const categorySchema = z.enum(['economy', 'comfort', 'luxury', 'van']);
+const typeSchema = z.enum(['ride', 'delivery', 'send_item']);
 
 export const estimateSchema = z.object({
   body: z.object({
@@ -21,6 +22,7 @@ export const createRideSchema = z.object({
   body: z.object({
     city: z.string().refine((v) => mongoose.isValidObjectId(v), 'Invalid city'),
     category: categorySchema.default('economy'),
+    type: typeSchema.default('ride'),
     paymentMethod: z.enum(['cash', 'bucket', 'pay_later']).default('cash'),
     pickup: pointSchema,
     dropoff: pointSchema,

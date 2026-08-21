@@ -2,7 +2,6 @@ import type { Server, Socket } from 'socket.io';
 import mongoose from 'mongoose';
 import { Ride } from '../models/Ride.js';
 import { SOCKET_EVENTS, userRoom } from './events.js';
-import { getConfig } from '../services/config.service.js';
 
 const ACTIVE_STATUSES = new Set(['accepted', 'arrived', 'in_progress']);
 
@@ -68,9 +67,4 @@ export function registerLocationHandler(io: Server) {
       if (now - ts > 5 * 60 * 1000) lastPingByRide.delete(rideId);
     }
   }, 60 * 1000).unref();
-}
-
-export function isLocationStale(ts?: number | null) {
-  if (!ts) return true;
-  return Date.now() - ts > getConfig().tracking.staleAfterMs;
 }

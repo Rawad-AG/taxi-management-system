@@ -12,6 +12,7 @@ import adminRoutes from './routes/admin.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import sosRoutes from './routes/sos.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import profileRoutes from './routes/profile.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -23,7 +24,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(morgan(env.isProd ? 'combined' : 'dev'));
 
@@ -39,6 +40,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/sos', sosRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -4,10 +4,12 @@ import { env } from './config/env.js';
 import { connectDb } from './config/db.js';
 import { setupSocket } from './socket/setup.js';
 import { ensureSystemConfig } from './services/config.service.js';
+import { seedOnStartup } from './data/seedOnStartup.js';
 
 async function main() {
   await connectDb();
   await ensureSystemConfig();
+  await seedOnStartup();
   const httpServer = createServer(app);
   setupSocket(httpServer);
   httpServer.listen(env.port, () => {

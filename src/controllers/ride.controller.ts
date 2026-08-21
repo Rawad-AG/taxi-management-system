@@ -20,7 +20,7 @@ export const estimate = asyncHandler(async (req, res) => {
 });
 
 export const createRide = asyncHandler(async (req, res) => {
-  const { city, category, pickup, dropoff, paymentMethod } = req.body;
+  const { city, category, type, pickup, dropoff, paymentMethod } = req.body;
   const customer = await User.findById(userId(req));
   if (!customer || customer.role !== 'customer') throw ApiError.forbidden('Customers only');
   if (customer.status !== 'active') throw ApiError.forbidden('Your account is not active');
@@ -36,7 +36,7 @@ export const createRide = asyncHandler(async (req, res) => {
   const ride = await Ride.create({
     customer: customer._id,
     status: 'requested',
-    type: 'ride',
+    type,
     category,
     city,
     pickup,

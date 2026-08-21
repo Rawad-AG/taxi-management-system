@@ -9,7 +9,6 @@ const PASS = '123456789';
 async function main() {
   await mongoose.connect(env.mongoUri);
   const targets = ['+963900000000', '+963941234567', '+963995551111'];
-  const norm = (p: string) => p.replace(/[\s-]/g, '');
   const users = await User.find({ phone: { $in: targets.map((t) => new RegExp(`^${t.replace('+', '\\+')}$`)) } }).select('+password');
   const hash = await bcrypt.hash(PASS, ROUNDS);
   for (const u of users) {

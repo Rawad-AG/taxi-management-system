@@ -16,8 +16,3 @@ export function formatSyrianPhone(input: string): string {
   const national = n.slice(4);
   return `${country} ${national.slice(0, 2)} ${national.slice(2, 5)} ${national.slice(5)}`;
 }
-
-export function localPhone(input: string): string {
-  const n = normalizePhone(input);
-  return SYRIAN_PHONE_REGEX.test(n) ? `0${n.slice(4)}` : n;
-}

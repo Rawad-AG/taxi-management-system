@@ -4,7 +4,7 @@ import { User } from '../models/User.js';
 import mongoose from 'mongoose';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { toDebtDTO, creditBucket, debitBucket, flipOverdueDebts } from '../services/payment.service.js';
+import { toDebtDTO, creditBucket, debitBucket } from '../services/payment.service.js';
 import { createNotification } from '../services/notification.service.js';
 import { refId } from '../services/rideFlow.service.js';
 import type { AuthedRequest } from '../middleware/auth.js';
@@ -143,7 +143,7 @@ export const adjustBucket = asyncHandler(async (req, res) => {
   res.json({ bucketBalance: balance });
 });
 
-export const bucketOverview = asyncHandler(async (req, res) => {
+export const bucketOverview = asyncHandler(async (_req, res) => {
   const transactions = await BucketTransaction.find().sort({ createdAt: -1 }).limit(50);
   res.json({
     transactions: transactions.map((t) => ({

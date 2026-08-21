@@ -52,7 +52,3 @@ export function setupSocket(httpServer: HttpServer) {
 
   console.log('[socket] ready');
 }
-
-export function getOnlineSocketsForUser(userId: string) {
-  return socketCounts.get(userId)?.size ?? 0;
-}

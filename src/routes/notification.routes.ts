@@ -6,6 +6,7 @@ const router = Router();
 
 router.use(authenticate);
 router.post('/device-token', notification.registerDeviceToken);
+router.post('/device-token/remove', notification.removeDeviceToken);
 router.get('/', notification.listNotifications);
 router.get('/unread-count', notification.unreadCount);
 router.post('/:id/read', notification.markRead);

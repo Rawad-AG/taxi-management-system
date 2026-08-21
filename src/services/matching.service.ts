@@ -1,4 +1,4 @@
-import { Ride, type RideDoc } from '../models/Ride.js';
+import { Ride } from '../models/Ride.js';
 import { DriverPresence } from '../models/DriverPresence.js';
 import { io } from '../socket/setup.js';
 import { SOCKET_EVENTS, userRoom } from '../socket/events.js';

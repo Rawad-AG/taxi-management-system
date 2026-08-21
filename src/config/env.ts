@@ -12,6 +12,5 @@ export const env = {
   refreshTokenTtlDays: parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || '30', 10),
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   cookieName: process.env.COOKIE_NAME || 'rt',
-  rideRequestTtlMs: parseInt(process.env.RIDE_REQUEST_TTL_MS || '60000', 10),
   isProd: process.env.NODE_ENV === 'production',
 };

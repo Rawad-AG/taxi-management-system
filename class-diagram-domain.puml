@@ -1,0 +1,120 @@
+@startuml
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 20
+skinparam classFontSize 20
+skinparam classAttributeFontSize 18
+skinparam classStereotypeFontSize 18
+skinparam packageTitleFontSize 20
+skinparam noteFontSize 18
+skinparam legendFontSize 16
+skinparam titleFontSize 30
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #94A3B8
+}
+skinparam classBackgroundColor<<core>> #ECFDF5
+skinparam classBorderColor<<core>> #0F766E
+skinparam classFontStyle<<core>> Bold
+skinparam package {
+  BackgroundColor #F8FAFC
+  BorderColor #CBD5E1
+}
+
+title DRMTaxi — Backend · Core services, socket & persistence\n(consumed by the REST API classes in class-diagram-http.svg)
+
+package "Core Services" {
+  class rideFlowService <<core>> {
+    RIDE_STATUS_FLOW : state machine
+    assertTransition(current, next)
+    toRideDTO(ride)
+  }
+
+  class matchingService <<core>> {
+    broadcastRideRequest(rideId)
+    clearRideRequestTimer(rideId)
+  }
+
+  class fareService <<core>> {
+    estimateFare(input) : base + perKm × road distance
+  }
+
+  class paymentService <<core>> {
+    creditBucket / debitBucket
+    settleRidePayment(ride)
+    getPayLaterStatus · flipOverdueDebts
+    assertCanUsePayLater · assertBucketCovers
+  }
+
+  class notificationService <<service>> {
+    createNotification(userId, input)
+  }
+
+  class pushService <<service>> {
+    sendPush(userId, msg) : Expo push
+  }
+
+  class configService <<service>> {
+    getConfig() : cached SystemConfigData
+    updateSystemConfig(patch, adminId)
+  }
+
+  class MessageService <<service>> {
+    sendOtp(to, code, channel)
+    sendVerificationCode(to, code)
+    -sendProduction() : TODO SMS gateway
+  }
+}
+
+package "Socket Layer" {
+  class socketSetup <<core>> {
+    setupSocket(httpServer)
+    JWT auth → join userRoom(userId)
+    disconnect → presence offline
+  }
+
+  class locationHandler <<core>> {
+    ride:location ping (throttled)
+    writes Ride.live → location:update
+  }
+
+  class SocketEvents <<constants>> {
+    ride:request · ride:accepted · ride:status
+    ride:completed · ride:request_expired
+    notification:new · sos:new · sos:resolved
+    presence:changed · location:update
+  }
+}
+
+package "Models (Mongoose)" {
+  class UserModel <<model>>
+  class RideModel <<model>>
+
+  note bottom of UserModel
+    + 11 secondary collections:
+    BucketTransaction, PayLaterDebt, Notification,
+    RefreshToken, SOSIncident, SystemConfig,
+    DriverPresence, CarMake, CarModel, City, Area
+    → full schema in erd.svg
+  end note
+}
+
+matchingService --> rideFlowService
+matchingService --> notificationService
+rideFlowService --> UserModel
+rideFlowService --> RideModel
+paymentService --> UserModel
+paymentService --> RideModel
+pushService --> UserModel
+
+socketSetup --> SocketEvents
+socketSetup --> locationHandler
+locationHandler --> RideModel
+
+legend
+  | <<core>> | core business logic — ride flow, matching, fares, payments |
+  | others  | supporting infrastructure |
+endlegend
+
+@enduml
