@@ -30,6 +30,7 @@ export const createRideSchema = z.object({
 });
 
 export const cancelRideSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
   body: z.object({
     reason: z.string().trim().max(200).optional(),
   }),
